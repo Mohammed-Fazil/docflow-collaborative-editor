@@ -9,7 +9,10 @@ eureka:
   client:
     register-with-eureka: false
     fetch-registry: false
-
+  instance:
+      hostname: localhost
+      prefer-ip-address: true
+      ip-address: 127.0.0.1
 management:
   endpoints:
     web:
