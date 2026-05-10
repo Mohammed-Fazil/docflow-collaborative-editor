@@ -7,10 +7,14 @@ import org.springframework.stereotype.Service;
 
 import com.docflow.userservice.dto.AuthResponse;
 import com.docflow.userservice.dto.LoginRequest;
+import com.docflow.userservice.dto.LogoutRequest;
+import com.docflow.userservice.dto.MessageResponse;
 import com.docflow.userservice.dto.RefreshTokenRequest;
 import com.docflow.userservice.dto.RegisterRequest;
 import com.docflow.userservice.entity.RefreshToken;
 import com.docflow.userservice.entity.User;
+import com.docflow.userservice.exception.BadRequestException;
+import com.docflow.userservice.exception.UnauthorizedException;
 import com.docflow.userservice.repository.RefreshTokenRepository;
 import com.docflow.userservice.repository.UserRepository;
 import com.docflow.userservice.security.JwtService;
@@ -21,99 +25,79 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class AuthService {
 
-    private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder;
-    private final JwtService jwtService;
-    private final RefreshTokenRepository refreshTokenRepository;
+	private final UserRepository userRepository;
+	private final PasswordEncoder passwordEncoder;
+	private final JwtService jwtService;
+	private final RefreshTokenRepository refreshTokenRepository;
 
-    public AuthResponse register(RegisterRequest request) {
+	public AuthResponse register(RegisterRequest request) {
 
-        User user = User.builder()
-                .name(request.getName())
-                .email(request.getEmail())
-                .password(passwordEncoder.encode(request.getPassword()))
-                .build();
+		if (userRepository.findByEmail(request.getEmail()).isPresent()) {
 
-        userRepository.save(user);
+			throw new BadRequestException("Email already exists");
+		}
 
-        String accessToken =
-                jwtService.generateAccessToken(user.getEmail());
+		User user = User.builder().name(request.getName()).email(request.getEmail())
+				.password(passwordEncoder.encode(request.getPassword())).build();
 
-        String refreshToken =
-                jwtService.generateRefreshToken(user.getEmail());
+		userRepository.save(user);
 
-        RefreshToken savedToken = RefreshToken.builder()
-                .token(refreshToken)
-                .user(user)
-                .expiryDate(LocalDateTime.now().plusDays(7))
-                .build();
+		String accessToken = jwtService.generateAccessToken(user.getEmail());
 
-        refreshTokenRepository.save(savedToken);
+		String refreshToken = jwtService.generateRefreshToken(user.getEmail());
 
-        return AuthResponse.builder()
-                .accessToken(accessToken)
-                .refreshToken(refreshToken)
-                .build();
-    }
+		RefreshToken savedToken = RefreshToken.builder().token(refreshToken).user(user)
+				.expiryDate(LocalDateTime.now().plusDays(7)).build();
 
-    public AuthResponse login(LoginRequest request) {
+		refreshTokenRepository.save(savedToken);
 
-        User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() ->
-                        new RuntimeException("Invalid credentials"));
+		return AuthResponse.builder().accessToken(accessToken).refreshToken(refreshToken).build();
+	}
 
-        boolean matches = passwordEncoder.matches(
-                request.getPassword(),
-                user.getPassword()
-        );
+	public AuthResponse login(LoginRequest request) {
 
-        if (!matches) {
-            throw new RuntimeException("Invalid credentials");
-        }
+		User user = userRepository.findByEmail(request.getEmail())
+				.orElseThrow(() -> new UnauthorizedException("Invalid credentials"));
 
-        String accessToken =
-                jwtService.generateAccessToken(user.getEmail());
+		boolean matches = passwordEncoder.matches(request.getPassword(), user.getPassword());
 
-        String refreshToken =
-                jwtService.generateRefreshToken(user.getEmail());
+		if (!matches) {
 
-        RefreshToken savedToken = RefreshToken.builder()
-                .token(refreshToken)
-                .user(user)
-                .expiryDate(LocalDateTime.now().plusDays(7))
-                .build();
+			throw new UnauthorizedException("Invalid credentials");
+		}
 
-        refreshTokenRepository.save(savedToken);
+		String accessToken = jwtService.generateAccessToken(user.getEmail());
 
-        return AuthResponse.builder()
-                .accessToken(accessToken)
-                .refreshToken(refreshToken)
-                .build();
-    }
+		String refreshToken = jwtService.generateRefreshToken(user.getEmail());
 
-    public AuthResponse refreshToken(
-            RefreshTokenRequest request
-    ) {
+		RefreshToken savedToken = RefreshToken.builder().token(refreshToken).user(user)
+				.expiryDate(LocalDateTime.now().plusDays(7)).build();
 
-        RefreshToken refreshToken = refreshTokenRepository
-                .findByToken(request.getRefreshToken())
-                .orElseThrow(() ->
-                        new RuntimeException("Invalid refresh token"));
+		refreshTokenRepository.save(savedToken);
 
-        if (refreshToken.getExpiryDate()
-                .isBefore(LocalDateTime.now())) {
+		return AuthResponse.builder().accessToken(accessToken).refreshToken(refreshToken).build();
+	}
 
-            throw new RuntimeException("Refresh token expired");
-        }
+	public AuthResponse refreshToken(RefreshTokenRequest request) {
 
-        String accessToken =
-                jwtService.generateAccessToken(
-                        refreshToken.getUser().getEmail()
-                );
+		RefreshToken refreshToken = refreshTokenRepository.findByToken(request.getRefreshToken())
+				.orElseThrow(() -> new UnauthorizedException("Invalid refresh token"));
 
-        return AuthResponse.builder()
-                .accessToken(accessToken)
-                .refreshToken(refreshToken.getToken())
-                .build();
-    }
+		if (refreshToken.getExpiryDate().isBefore(LocalDateTime.now())) {
+
+			throw new UnauthorizedException("Refresh token expired");
+		}
+
+		String accessToken = jwtService.generateAccessToken(refreshToken.getUser().getEmail());
+
+		return AuthResponse.builder().accessToken(accessToken).refreshToken(refreshToken.getToken()).build();
+	}
+
+	public MessageResponse logout(LogoutRequest request) {
+
+		refreshTokenRepository.findByToken(request.getRefreshToken()).ifPresent(refreshTokenRepository::delete);
+
+		return new MessageResponse("Logout successful");
+	}
+
 }

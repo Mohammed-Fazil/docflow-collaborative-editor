@@ -8,7 +8,8 @@ spring:
   cloud:
     gateway:
       routes:
-        - id: user-service
+
+        - id: auth-route
           uri: lb://USER-SERVICE
 
           predicates:
@@ -17,14 +18,23 @@ spring:
           filters:
             - StripPrefix=1
 
+        - id: user-route
+          uri: lb://USER-SERVICE
+
+          predicates:
+            - Path=/me
+
 eureka:
   client:
     service-url:
       defaultZone: http://localhost:8761/eureka
+
   instance:
     hostname: localhost
-    prefer-ip-address: true			
+    prefer-ip-address: true
     ip-address: 127.0.0.1
+
+management:
   endpoints:
     web:
       exposure:

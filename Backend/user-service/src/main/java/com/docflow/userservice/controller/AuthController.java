@@ -7,6 +7,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.docflow.userservice.dto.AuthResponse;
 import com.docflow.userservice.dto.LoginRequest;
+import com.docflow.userservice.dto.LogoutRequest;
+import com.docflow.userservice.dto.MessageResponse;
 import com.docflow.userservice.dto.RefreshTokenRequest;
 import com.docflow.userservice.dto.RegisterRequest;
 import com.docflow.userservice.service.AuthService;
@@ -19,25 +21,26 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class AuthController {
 
-    private final AuthService authService;
+	private final AuthService authService;
 
-    @PostMapping("/register")
-    public AuthResponse register(
-            @Valid @RequestBody RegisterRequest request
-    ) {
-        return authService.register(request);
-    }
+	@PostMapping("/register")
+	public AuthResponse register(@Valid @RequestBody RegisterRequest request) {
+		return authService.register(request);
+	}
 
-    @PostMapping("/login")
-    public AuthResponse login(
-            @Valid @RequestBody LoginRequest request
-    ) {
-        return authService.login(request);
-    }
-    @PostMapping("/refresh")
-    public AuthResponse refreshToken(
-            @RequestBody RefreshTokenRequest request
-    ) {
-        return authService.refreshToken(request);
-    }
+	@PostMapping("/login")
+	public AuthResponse login(@Valid @RequestBody LoginRequest request) {
+		return authService.login(request);
+	}
+
+	@PostMapping("/refresh")
+	public AuthResponse refreshToken(@RequestBody RefreshTokenRequest request) {
+		return authService.refreshToken(request);
+	}
+
+	@PostMapping("/logout")
+	public MessageResponse logout(@RequestBody LogoutRequest request) {
+
+		return authService.logout(request);
+	}
 }
