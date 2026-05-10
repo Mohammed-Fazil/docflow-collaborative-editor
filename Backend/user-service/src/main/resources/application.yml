@@ -30,3 +30,9 @@ management:
     web:
       exposure:
         include: "*"
+
+jwt:
+  secret: mySuperSecretKeyThatIsAtLeast32CharactersLong
+
+  access-token-expiration: 900000
+  refresh-token-expiration: 604800000
