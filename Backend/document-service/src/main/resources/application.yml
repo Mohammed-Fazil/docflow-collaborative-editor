@@ -1,9 +1,9 @@
 server:
-  port: 8081
+  port: 8082
 
 spring:
   application:
-    name: user-service
+    name: document-service
 
   datasource:
     url: jdbc:postgresql://localhost:5432/docflow
@@ -29,15 +29,17 @@ eureka:
     hostname: localhost
     prefer-ip-address: true
     ip-address: 127.0.0.1
+    instance-id: localhost:${spring.application.name}:${server.port}
+
+jwt:
+  secret: mySuperSecretKeyThatIsAtLeast32CharactersLong
+
+  access-token-expiration: 900000
+
+  refresh-token-expiration: 604800000
 
 management:
   endpoints:
     web:
       exposure:
         include: "*"
-
-jwt:
-  secret: mySuperSecretKeyThatIsAtLeast32CharactersLong
-
-  access-token-expiration: 900000
-  refresh-token-expiration: 604800000

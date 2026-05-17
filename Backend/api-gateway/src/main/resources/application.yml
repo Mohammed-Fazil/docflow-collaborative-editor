@@ -24,6 +24,12 @@ spring:
           predicates:
             - Path=/me
 
+        - id: document-route
+          uri: lb://DOCUMENT-SERVICE
+
+          predicates:
+            - Path=/documents/**
+
 eureka:
   client:
     service-url:
@@ -33,6 +39,7 @@ eureka:
     hostname: localhost
     prefer-ip-address: true
     ip-address: 127.0.0.1
+    instance-id: localhost:${spring.application.name}:${server.port}
 
 management:
   endpoints:
