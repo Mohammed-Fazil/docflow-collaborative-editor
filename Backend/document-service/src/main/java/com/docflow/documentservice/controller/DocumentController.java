@@ -1,7 +1,5 @@
 package com.docflow.documentservice.controller;
 
-import java.util.List;
-
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -10,10 +8,12 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.docflow.documentservice.dto.CreateDocumentRequest;
 import com.docflow.documentservice.dto.DocumentResponse;
+import com.docflow.documentservice.dto.PagedResponse;
 import com.docflow.documentservice.dto.UpdateDocumentRequest;
 import com.docflow.documentservice.service.DocumentService;
 
@@ -35,9 +35,11 @@ public class DocumentController {
 	}
 
 	@GetMapping
-	public List<DocumentResponse> getMyDocuments(Authentication authentication) {
+	public PagedResponse<DocumentResponse> getMyDocuments(Authentication authentication,
+			@RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int size,
+			@RequestParam(defaultValue = "updatedAt") String sortBy) {
 
-		return documentService.getMyDocuments(authentication.getName());
+		return documentService.getMyDocuments(authentication.getName(), page, size, sortBy);
 	}
 
 	@DeleteMapping("/{id}")

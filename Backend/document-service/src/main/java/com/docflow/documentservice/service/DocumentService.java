@@ -1,16 +1,15 @@
 package com.docflow.documentservice.service;
 
-import java.util.List;
-
 import com.docflow.documentservice.dto.CreateDocumentRequest;
 import com.docflow.documentservice.dto.DocumentResponse;
+import com.docflow.documentservice.dto.PagedResponse;
 import com.docflow.documentservice.dto.UpdateDocumentRequest;
 
 public interface DocumentService {
 
 	DocumentResponse createDocument(CreateDocumentRequest request, String ownerId);
 
-	List<DocumentResponse> getMyDocuments(String ownerId);
+	PagedResponse<DocumentResponse> getMyDocuments(String ownerId, int page, int size, String sortBy);
 
 	void deleteDocument(String id, String ownerId);
 
