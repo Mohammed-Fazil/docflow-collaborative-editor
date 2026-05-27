@@ -1,43 +1,42 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
+
+import LoginPage from "./pages/LoginPage";
 
 import RegisterPage from "./pages/RegisterPage";
-import LoginPage from "./pages/LoginPage";
+
 import DashboardPage from "./pages/DashboardPage";
 
-import ProtectedRoute from "./routes/ProtectedRoute";
-import { AuthProvider } from "./context/AuthContext";
+import DocumentEditorPage from "./pages/DocumentEditorPage";
+
+import ProtectedRoute from "./components/ProtectedRoute";
 
 function App() {
   return (
-    <AuthProvider>
-      <BrowserRouter>
-        <Routes>
-          <Route
-            path="/"
-            element={
-              localStorage.getItem("accessToken") ? (
-                <Navigate to="/dashboard" />
-              ) : (
-                <Navigate to="/login" />
-              )
-            }
-          />
+    <Routes>
+      <Route path="/login" element={<LoginPage />} />
 
-          <Route path="/register" element={<RegisterPage />} />
+      <Route path="/register" element={<RegisterPage />} />
 
-          <Route path="/login" element={<LoginPage />} />
+      <Route
+        path="/dashboard"
+        element={
+          <ProtectedRoute>
+            <DashboardPage />
+          </ProtectedRoute>
+        }
+      />
 
-          <Route
-            path="/dashboard"
-            element={
-              <ProtectedRoute>
-                <DashboardPage />
-              </ProtectedRoute>
-            }
-          />
-        </Routes>
-      </BrowserRouter>
-    </AuthProvider>
+      <Route
+        path="/documents/:id"
+        element={
+          <ProtectedRoute>
+            <DocumentEditorPage />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route path="*" element={<Navigate to="/login" />} />
+    </Routes>
   );
 }
 
