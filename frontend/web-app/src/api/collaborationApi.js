@@ -39,3 +39,39 @@ export const getSharedDocuments = async () => {
 
     return response.data;
 };
+
+/*
+  GET COLLABORATORS
+*/
+
+export const getCollaborators = async (
+
+    documentId
+
+) => {
+
+    const response = await axios.get(
+
+        `/documents/${documentId}/collaborators`
+    );
+
+    return response.data;
+};
+
+/*
+  REMOVE COLLABORATOR
+*/
+
+export const removeCollaborator = async (
+
+    documentId,
+
+    email
+
+) => {
+
+    await axios.delete(
+
+        `/documents/${documentId}/collaborators/${email}`
+    );
+};

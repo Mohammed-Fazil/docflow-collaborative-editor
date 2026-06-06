@@ -7,7 +7,11 @@ import { ArrowLeft, Save, FileText, Share2 } from "lucide-react";
 import { getDocumentById, updateDocument } from "../api/documentApi";
 
 import TiptapEditor from "../components/TiptapEditor";
-import { addCollaborator } from "../api/collaborationApi";
+import {
+  addCollaborator,
+  getCollaborators,
+  removeCollaborator,
+} from "../api/collaborationApi";
 import {
   connectWebSocket,
   sendDocumentChange,
@@ -24,30 +28,30 @@ function DocumentEditorPage() {
   const { id } = useParams();
 
   /*
-    AUTH CONTEXT
-  */
+      AUTH CONTEXT
+    */
 
   const { user } = useAuth();
 
   /*
-    DOCUMENT STATE
-  */
+      DOCUMENT STATE
+    */
 
   const [title, setTitle] = useState("");
 
   const [content, setContent] = useState("");
 
   /*
-    UI STATE
-  */
+      UI STATE
+    */
 
   const [loading, setLoading] = useState(true);
 
   const [saving, setSaving] = useState(false);
 
   /*
-    REALTIME STATE
-  */
+      REALTIME STATE
+    */
 
   const [isRemoteUpdate, setIsRemoteUpdate] = useState(false);
 
@@ -56,13 +60,29 @@ function DocumentEditorPage() {
   const [shareEmail, setShareEmail] = useState("");
 
   const [sharing, setSharing] = useState(false);
+  const [collaborators, setCollaborators] = useState([]);
 
   /*
-    FETCH DOCUMENT
+  Load Collaborators
   */
+
+  const fetchCollaborators = async () => {
+    try {
+      const data = await getCollaborators(id);
+
+      setCollaborators(data);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  /*
+      FETCH DOCUMENT
+    */
 
   useEffect(() => {
     fetchDocument();
+    fetchCollaborators();
   }, []);
 
   const fetchDocument = async () => {
@@ -82,27 +102,27 @@ function DocumentEditorPage() {
   };
 
   /*
-    WEBSOCKET CONNECTION
-  */
+      WEBSOCKET CONNECTION
+    */
 
   useEffect(() => {
     /*
-      CONNECT
-    */
+        CONNECT
+      */
 
     connectWebSocket(
       id,
 
       /*
-        DOCUMENT UPDATE
-      */
+          DOCUMENT UPDATE
+        */
 
       (message) => {
         console.log("Received update:", message);
 
         /*
-          PREVENT LOOP
-        */
+            PREVENT LOOP
+          */
 
         setIsRemoteUpdate(true);
 
@@ -110,8 +130,8 @@ function DocumentEditorPage() {
       },
 
       /*
-        ACTIVE USERS
-      */
+          ACTIVE USERS
+        */
 
       (users) => {
         console.log("Active users:", users);
@@ -121,8 +141,8 @@ function DocumentEditorPage() {
     );
 
     /*
-      JOIN ROOM
-    */
+        JOIN ROOM
+      */
 
     const timer = setTimeout(() => {
       joinDocument({
@@ -135,8 +155,8 @@ function DocumentEditorPage() {
     }, 1000);
 
     /*
-      CLEANUP
-    */
+        CLEANUP
+      */
 
     return () => {
       clearTimeout(timer);
@@ -154,13 +174,13 @@ function DocumentEditorPage() {
   }, [id, user]);
 
   /*
-    BROADCAST CHANGES
-  */
+      BROADCAST CHANGES
+    */
 
   useEffect(() => {
     /*
-      SKIP REMOTE UPDATES
-    */
+        SKIP REMOTE UPDATES
+      */
 
     if (isRemoteUpdate) {
       setIsRemoteUpdate(false);
@@ -169,8 +189,8 @@ function DocumentEditorPage() {
     }
 
     /*
-      SEND EDIT EVENT
-    */
+        SEND EDIT EVENT
+      */
 
     sendDocumentChange({
       documentId: id,
@@ -182,8 +202,8 @@ function DocumentEditorPage() {
   }, [content]);
 
   /*
-  SHARE DOCUMENT
-*/
+    SHARE DOCUMENT
+  */
 
   const handleShare = async () => {
     if (!shareEmail) {
@@ -193,15 +213,12 @@ function DocumentEditorPage() {
     try {
       setSharing(true);
 
-      await addCollaborator(
-        id,
-
-        shareEmail,
-      );
+      await addCollaborator(id, shareEmail);
 
       alert("Collaborator added successfully");
 
       setShareEmail("");
+      fetchCollaborators();
     } catch (error) {
       console.error(error);
 
@@ -210,10 +227,28 @@ function DocumentEditorPage() {
       setSharing(false);
     }
   };
-
   /*
-    MANUAL SAVE
-  */
+  REMOVE COLLABORATOR
+*/
+
+  const handleRemoveCollaborator = async (email) => {
+    try {
+      await removeCollaborator(
+        id,
+
+        email,
+      );
+
+      fetchCollaborators();
+    } catch (error) {
+      console.error(error);
+
+      alert("Failed to remove collaborator");
+    }
+  };
+  /*
+      MANUAL SAVE
+    */
 
   const handleSave = async () => {
     try {
@@ -234,8 +269,8 @@ function DocumentEditorPage() {
   };
 
   /*
-    LOADING UI
-  */
+      LOADING UI
+    */
 
   if (loading) {
     return (
@@ -334,8 +369,54 @@ function DocumentEditorPage() {
 
       {/* MAIN */}
 
-      <main className="max-w-5xl mx-auto py-14 px-8">
-        <TiptapEditor content={content} onChange={setContent} />
+      <main className="max-w-7xl mx-auto py-14 px-8">
+        <div className="grid grid-cols-3 gap-8">
+          {/* EDITOR */}
+
+          <div className="col-span-2">
+            <TiptapEditor content={content} onChange={setContent} />
+          </div>
+
+          {/* COLLABORATORS */}
+
+          <div>
+            <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
+              <h3 className="text-xl font-bold mb-6">Collaborators</h3>
+
+              <div className="space-y-4">
+                {collaborators.length === 0 && (
+                  <p className="text-gray-500 text-sm">No collaborators yet</p>
+                )}
+
+                {collaborators.map((collaborator) => (
+                  <div
+                    key={collaborator.email}
+                    className="flex items-center justify-between"
+                  >
+                    <div>
+                      <p className="font-medium">{collaborator.email}</p>
+
+                      <p className="text-sm text-gray-500">
+                        {collaborator.owner ? "OWNER" : collaborator.role}
+                      </p>
+                    </div>
+
+                    {!collaborator.owner && (
+                      <button
+                        onClick={() =>
+                          handleRemoveCollaborator(collaborator.email)
+                        }
+                        className="text-red-500 hover:text-red-700 text-sm"
+                      >
+                        Remove
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
       </main>
     </div>
   );
