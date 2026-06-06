@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.docflow.documentservice.dto.CollaboratorResponse;
 import com.docflow.documentservice.dto.CreateDocumentRequest;
 import com.docflow.documentservice.dto.DocumentResponse;
 import com.docflow.documentservice.dto.PagedResponse;
@@ -78,5 +79,19 @@ public class DocumentController {
 	public ResponseEntity<List<DocumentResponse>> getSharedDocuments(Authentication authentication) {
 
 		return ResponseEntity.ok(documentService.getSharedDocuments(authentication.getName()));
+	}
+
+	@GetMapping("/{id}/collaborators")
+	public ResponseEntity<List<CollaboratorResponse>> getCollaborators(@PathVariable String id,
+			Authentication authentication) {
+
+		return ResponseEntity.ok(documentService.getCollaborators(id, authentication.getName()));
+	}
+
+	@DeleteMapping("/{id}/collaborators/{email}")
+	public ResponseEntity<Void> removeCollaborator(@PathVariable String id, @PathVariable String email,
+			Authentication authentication) {
+		documentService.removeCollaborator(id, email, authentication.getName());
+		return ResponseEntity.noContent().build();
 	}
 }

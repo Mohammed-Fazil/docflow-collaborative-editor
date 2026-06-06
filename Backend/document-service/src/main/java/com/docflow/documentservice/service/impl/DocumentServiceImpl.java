@@ -10,6 +10,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
+import com.docflow.documentservice.dto.CollaboratorResponse;
 import com.docflow.documentservice.dto.CreateDocumentRequest;
 import com.docflow.documentservice.dto.DocumentResponse;
 import com.docflow.documentservice.dto.PagedResponse;
@@ -74,31 +75,11 @@ public class DocumentServiceImpl implements DocumentService {
 
 						pageable);
 
-		List<DocumentResponse> responses =
+		List<DocumentResponse> responses = ownedPage.getContent().stream().map(this::mapToResponse).toList();
 
-				ownedPage.getContent()
-
-						.stream()
-
-						.map(this::mapToResponse)
-
-						.toList();
-
-		return PagedResponse.<DocumentResponse>builder()
-
-				.content(responses)
-
-				.page(page)
-
-				.size(size)
-
-				.totalElements(ownedPage.getTotalElements())
-
-				.totalPages(ownedPage.getTotalPages())
-
-				.last(ownedPage.isLast())
-
-				.build();
+		return PagedResponse.<DocumentResponse>builder().content(responses).page(page).size(size)
+				.totalElements(ownedPage.getTotalElements()).totalPages(ownedPage.getTotalPages())
+				.last(ownedPage.isLast()).build();
 	}
 	/*
 	 * GET SHARED DOCUMENT
@@ -130,30 +111,14 @@ public class DocumentServiceImpl implements DocumentService {
 	 */
 
 	@Override
-	public DocumentResponse updateDocument(
-
-			String id,
-
-			UpdateDocumentRequest request,
-
-			String currentUser
-
-	) {
+	public DocumentResponse updateDocument(String id, UpdateDocumentRequest request, String currentUser) {
 
 		Document document = getDocumentOrThrow(id);
-
 		validateAccess(document, currentUser);
-
 		document.setTitle(request.getTitle());
-
 		document.setContent(request.getContent());
-
 		document.setUpdatedAt(LocalDateTime.now());
-
-		Document updatedDocument =
-
-				documentRepository.save(document);
-
+		Document updatedDocument = documentRepository.save(document);
 		return mapToResponse(updatedDocument);
 	}
 
@@ -162,25 +127,13 @@ public class DocumentServiceImpl implements DocumentService {
 	 */
 
 	@Override
-	public void deleteDocument(
-
-			String id,
-
-			String currentUser
-
-	) {
+	public void deleteDocument(String id, String currentUser) {
 
 		Document document = getDocumentOrThrow(id);
 
-		if (!document.getOwnerId()
-
-				.equals(currentUser)) {
-
-			throw new UnauthorizedException(
-
-					"You are not allowed to delete this document");
+		if (!document.getOwnerId().equals(currentUser)) {
+			throw new UnauthorizedException("You are not allowed to delete this document");
 		}
-
 		documentRepository.delete(document);
 	}
 
@@ -197,10 +150,7 @@ public class DocumentServiceImpl implements DocumentService {
 		 * OWNER ONLY
 		 */
 
-		if (!document.getOwnerId()
-
-				.equals(currentUser)) {
-
+		if (!document.getOwnerId().equals(currentUser)) {
 			throw new UnauthorizedException("Only owner can share document");
 		}
 
@@ -208,22 +158,10 @@ public class DocumentServiceImpl implements DocumentService {
 		 * ALREADY SHARED?
 		 */
 
-		boolean exists =
-
-				collaboratorRepository
-
-						.findByDocumentIdAndUserEmail(
-
-								documentId,
-
-								request.getUserEmail()
-
-						)
-
-						.isPresent();
+		boolean exists = collaboratorRepository.findByDocumentIdAndUserEmail(documentId, request.getUserEmail())
+				.isPresent();
 
 		if (exists) {
-
 			throw new ConflictException("Document already shared with this user");
 		}
 
@@ -231,18 +169,8 @@ public class DocumentServiceImpl implements DocumentService {
 		 * CREATE COLLABORATOR
 		 */
 
-		DocumentCollaborator collaborator =
-
-				DocumentCollaborator.builder()
-
-						.document(document)
-
-						.userEmail(request.getUserEmail())
-
-						.role(request.getRole())
-
-						.build();
-
+		DocumentCollaborator collaborator = DocumentCollaborator.builder().document(document)
+				.userEmail(request.getUserEmail()).role(request.getRole()).build();
 		collaboratorRepository.save(collaborator);
 	}
 
@@ -250,16 +178,9 @@ public class DocumentServiceImpl implements DocumentService {
 	 * ACCESS VALIDATION
 	 */
 
-	private void validateAccess(
-
-			Document document,
-
-			String userEmail
-
-	) {
+	private void validateAccess(Document document, String userEmail) {
 
 		if (!hasAccess(document, userEmail)) {
-
 			throw new UnauthorizedException("You are not allowed to access this document");
 		}
 	}
@@ -268,22 +189,13 @@ public class DocumentServiceImpl implements DocumentService {
 	 * OWNER OR COLLABORATOR
 	 */
 
-	private boolean hasAccess(
-
-			Document document,
-
-			String userEmail
-
-	) {
+	private boolean hasAccess(Document document, String userEmail) {
 
 		/*
 		 * OWNER
 		 */
 
-		if (document.getOwnerId()
-
-				.equals(userEmail)) {
-
+		if (document.getOwnerId().equals(userEmail)) {
 			return true;
 		}
 
@@ -291,17 +203,7 @@ public class DocumentServiceImpl implements DocumentService {
 		 * COLLABORATOR
 		 */
 
-		return collaboratorRepository
-
-				.findByDocumentIdAndUserEmail(
-
-						document.getId(),
-
-						userEmail
-
-				)
-
-				.isPresent();
+		return collaboratorRepository.findByDocumentIdAndUserEmail(document.getId(), userEmail).isPresent();
 	}
 
 	/*
@@ -310,39 +212,75 @@ public class DocumentServiceImpl implements DocumentService {
 
 	private Document getDocumentOrThrow(String id) {
 
-		return documentRepository
-
-				.findById(id)
-
-				.orElseThrow(() ->
-
-				new ResourceNotFoundException("Document not found"));
+		return documentRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Document not found"));
 	}
 
 	/*
 	 * MAP RESPONSE
 	 */
 
-	private DocumentResponse mapToResponse(
+	private DocumentResponse mapToResponse(Document document) {
 
-			Document document
-
-	) {
-
-		return DocumentResponse.builder()
-
-				.id(document.getId())
-
-				.title(document.getTitle())
-
-				.content(document.getContent())
-
-				.ownerId(document.getOwnerId())
-
-				.createdAt(document.getCreatedAt())
-
-				.updatedAt(document.getUpdatedAt())
-
+		return DocumentResponse.builder().id(document.getId()).title(document.getTitle()).content(document.getContent())
+				.ownerId(document.getOwnerId()).createdAt(document.getCreatedAt()).updatedAt(document.getUpdatedAt())
 				.build();
+	}
+
+	@Override
+	public List<CollaboratorResponse> getCollaborators(String documentId, String currentUser) {
+
+		Document document = getDocumentOrThrow(documentId);
+
+		validateAccess(document, currentUser);
+
+		List<CollaboratorResponse> collaborators = new ArrayList<>();
+
+		/*
+		 * OWNER
+		 */
+
+		collaborators.add(CollaboratorResponse.builder().email(document.getOwnerId()).role(null).owner(true).build());
+
+		/*
+		 * COLLABORATORS
+		 */
+
+		collaboratorRepository.findByDocumentId(documentId).forEach(collaborator -> collaborators.add(
+
+				CollaboratorResponse.builder().email(collaborator.getUserEmail()).role(collaborator.getRole())
+						.owner(false).build()));
+		return collaborators;
+	}
+
+	@Override
+	public void removeCollaborator(String documentId, String collaboratorEmail, String currentUser) {
+
+		Document document = getDocumentOrThrow(documentId);
+
+		/*
+		 * OWNER ONLY
+		 */
+
+		if (!document.getOwnerId().equals(currentUser)) {
+			throw new UnauthorizedException("Only owner can remove collaborators");
+		}
+
+		DocumentCollaborator collaborator =
+
+				collaboratorRepository
+
+						.findByDocumentIdAndUserEmail(
+
+								documentId,
+
+								collaboratorEmail)
+
+						.orElseThrow(() ->
+
+						new ResourceNotFoundException(
+
+								"Collaborator not found"));
+
+		collaboratorRepository.delete(collaborator);
 	}
 }

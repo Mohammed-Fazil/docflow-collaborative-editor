@@ -13,4 +13,6 @@ public interface DocumentCollaboratorRepository extends JpaRepository<DocumentCo
 	List<DocumentCollaborator> findByUserEmail(String userEmail);
 
 	Optional<DocumentCollaborator> findByDocumentIdAndUserEmail(String documentId, String userEmail);
+
+	List<DocumentCollaborator> findByDocumentId(String documentId);
 }

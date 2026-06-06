@@ -2,6 +2,7 @@ package com.docflow.documentservice.service;
 
 import java.util.List;
 
+import com.docflow.documentservice.dto.CollaboratorResponse;
 import com.docflow.documentservice.dto.CreateDocumentRequest;
 import com.docflow.documentservice.dto.DocumentResponse;
 import com.docflow.documentservice.dto.PagedResponse;
@@ -23,5 +24,9 @@ public interface DocumentService {
 	void shareDocument(String documentId, ShareDocumentRequest request, String currentUser);
 
 	List<DocumentResponse> getSharedDocuments(String currentUser);
+
+	List<CollaboratorResponse> getCollaborators(String documentId, String currentUser);
+
+	void removeCollaborator(String documentId, String collaboratorEmail, String currentUser);
 
 }
