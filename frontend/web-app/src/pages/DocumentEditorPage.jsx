@@ -2,32 +2,60 @@ import { useEffect, useState } from "react";
 
 import { useNavigate, useParams } from "react-router-dom";
 
-import { ArrowLeft, Save, FileText } from "lucide-react";
+import { ArrowLeft, Save, FileText, Share2 } from "lucide-react";
 
 import { getDocumentById, updateDocument } from "../api/documentApi";
 
 import TiptapEditor from "../components/TiptapEditor";
-
+import { addCollaborator } from "../api/collaborationApi";
 import {
   connectWebSocket,
   sendDocumentChange,
   disconnectWebSocket,
+  joinDocument,
+  leaveDocument,
 } from "../websocket/websocketService";
+
+import { useAuth } from "../context/AuthContext";
 
 function DocumentEditorPage() {
   const navigate = useNavigate();
 
   const { id } = useParams();
 
+  /*
+    AUTH CONTEXT
+  */
+
+  const { user } = useAuth();
+
+  /*
+    DOCUMENT STATE
+  */
+
   const [title, setTitle] = useState("");
 
   const [content, setContent] = useState("");
+
+  /*
+    UI STATE
+  */
 
   const [loading, setLoading] = useState(true);
 
   const [saving, setSaving] = useState(false);
 
+  /*
+    REALTIME STATE
+  */
+
   const [isRemoteUpdate, setIsRemoteUpdate] = useState(false);
+
+  const [activeUsers, setActiveUsers] = useState([]);
+
+  const [shareEmail, setShareEmail] = useState("");
+
+  const [sharing, setSharing] = useState(false);
 
   /*
     FETCH DOCUMENT
@@ -58,42 +86,130 @@ function DocumentEditorPage() {
   */
 
   useEffect(() => {
+    /*
+      CONNECT
+    */
+
     connectWebSocket(
       id,
 
+      /*
+        DOCUMENT UPDATE
+      */
+
       (message) => {
         console.log("Received update:", message);
+
+        /*
+          PREVENT LOOP
+        */
 
         setIsRemoteUpdate(true);
 
         setContent(message.content);
       },
+
+      /*
+        ACTIVE USERS
+      */
+
+      (users) => {
+        console.log("Active users:", users);
+
+        setActiveUsers(users);
+      },
     );
 
+    /*
+      JOIN ROOM
+    */
+
+    const timer = setTimeout(() => {
+      joinDocument({
+        documentId: id,
+
+        userEmail: user?.email,
+
+        type: "JOIN",
+      });
+    }, 1000);
+
+    /*
+      CLEANUP
+    */
+
     return () => {
+      clearTimeout(timer);
+
+      leaveDocument({
+        documentId: id,
+
+        userEmail: user?.email,
+
+        type: "LEAVE",
+      });
+
       disconnectWebSocket();
     };
-  }, [id]);
+  }, [id, user]);
 
   /*
     BROADCAST CHANGES
   */
 
   useEffect(() => {
+    /*
+      SKIP REMOTE UPDATES
+    */
+
     if (isRemoteUpdate) {
       setIsRemoteUpdate(false);
 
       return;
     }
 
+    /*
+      SEND EDIT EVENT
+    */
+
     sendDocumentChange({
       documentId: id,
 
       content,
 
-      userEmail: "current-user",
+      userEmail: user?.email,
     });
   }, [content]);
+
+  /*
+  SHARE DOCUMENT
+*/
+
+  const handleShare = async () => {
+    if (!shareEmail) {
+      return;
+    }
+
+    try {
+      setSharing(true);
+
+      await addCollaborator(
+        id,
+
+        shareEmail,
+      );
+
+      alert("Collaborator added successfully");
+
+      setShareEmail("");
+    } catch (error) {
+      console.error(error);
+
+      alert("Failed to add collaborator");
+    } finally {
+      setSharing(false);
+    }
+  };
 
   /*
     MANUAL SAVE
@@ -160,9 +276,50 @@ function DocumentEditorPage() {
           {/* RIGHT */}
 
           <div className="flex items-center gap-5">
+            {/* ACTIVE USERS */}
+
+            <div className="flex items-center gap-3">
+              {activeUsers.map((activeUser) => (
+                <div
+                  key={activeUser}
+                  className="flex items-center gap-2 bg-green-50 text-green-700 px-3 py-2 rounded-xl text-sm"
+                >
+                  <div className="w-2 h-2 rounded-full bg-green-500" />
+
+                  {activeUser}
+                </div>
+              ))}
+            </div>
+
+            {/* SAVE STATUS */}
+
             <span className="text-sm text-gray-500">
               {saving ? "Saving..." : "All changes saved"}
             </span>
+
+            {/* SHARE */}
+
+            <div className="flex items-center gap-3">
+              <input
+                type="email"
+                placeholder="Invite collaborator"
+                value={shareEmail}
+                onChange={(e) => setShareEmail(e.target.value)}
+                className="px-4 py-3 rounded-2xl border border-gray-200 outline-none focus:ring-2 focus:ring-[#5B5BD6]"
+              />
+
+              <button
+                onClick={handleShare}
+                disabled={sharing}
+                className="flex items-center gap-2 bg-black hover:bg-gray-900 text-white px-5 py-3 rounded-2xl transition"
+              >
+                <Share2 size={18} />
+
+                {sharing ? "Sharing..." : "Share"}
+              </button>
+            </div>
+
+            {/* SAVE BUTTON */}
 
             <button
               onClick={handleSave}

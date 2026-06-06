@@ -1,14 +1,22 @@
 import SockJS from "sockjs-client";
 
-import { Client } from "@stomp/stompjs";
+import { Client }
+
+  from "@stomp/stompjs";
 
 let stompClient = null;
+
+/*
+    CONNECT
+*/
 
 export const connectWebSocket = (
 
   documentId,
 
-  onMessageReceived
+  onDocumentUpdate,
+
+  onPresenceUpdate
 
 ) => {
 
@@ -29,6 +37,10 @@ export const connectWebSocket = (
         "Connected to WebSocket"
       );
 
+      /*
+          DOCUMENT CHANGES
+      */
+
       stompClient.subscribe(
 
         `/topic/document/${documentId}`,
@@ -38,7 +50,24 @@ export const connectWebSocket = (
           const body =
             JSON.parse(message.body);
 
-          onMessageReceived(body);
+          onDocumentUpdate(body);
+        }
+      );
+
+      /*
+          PRESENCE UPDATES
+      */
+
+      stompClient.subscribe(
+
+        `/topic/presence/${documentId}`,
+
+        (message) => {
+
+          const body =
+            JSON.parse(message.body);
+
+          onPresenceUpdate(body);
         }
       );
     },
@@ -54,6 +83,10 @@ export const connectWebSocket = (
 
   stompClient.activate();
 };
+
+/*
+    SEND EDIT
+*/
 
 export const sendDocumentChange = (
 
@@ -75,6 +108,60 @@ export const sendDocumentChange = (
     });
   }
 };
+
+/*
+    JOIN DOCUMENT
+*/
+
+export const joinDocument = (
+
+  message
+
+) => {
+
+  if (
+    stompClient &&
+    stompClient.connected
+  ) {
+
+    stompClient.publish({
+
+      destination:
+        "/app/document.join",
+
+      body: JSON.stringify(message),
+    });
+  }
+};
+
+/*
+    LEAVE DOCUMENT
+*/
+
+export const leaveDocument = (
+
+  message
+
+) => {
+
+  if (
+    stompClient &&
+    stompClient.connected
+  ) {
+
+    stompClient.publish({
+
+      destination:
+        "/app/document.leave",
+
+      body: JSON.stringify(message),
+    });
+  }
+};
+
+/*
+    DISCONNECT
+*/
 
 export const disconnectWebSocket = () => {
 

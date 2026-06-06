@@ -1,6 +1,7 @@
 package com.docflow.documentservice.service.impl;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.data.domain.Page;
@@ -12,10 +13,14 @@ import org.springframework.stereotype.Service;
 import com.docflow.documentservice.dto.CreateDocumentRequest;
 import com.docflow.documentservice.dto.DocumentResponse;
 import com.docflow.documentservice.dto.PagedResponse;
+import com.docflow.documentservice.dto.ShareDocumentRequest;
 import com.docflow.documentservice.dto.UpdateDocumentRequest;
 import com.docflow.documentservice.entity.Document;
+import com.docflow.documentservice.entity.DocumentCollaborator;
+import com.docflow.documentservice.exception.ConflictException;
 import com.docflow.documentservice.exception.ResourceNotFoundException;
 import com.docflow.documentservice.exception.UnauthorizedException;
+import com.docflow.documentservice.repository.DocumentCollaboratorRepository;
 import com.docflow.documentservice.repository.DocumentRepository;
 import com.docflow.documentservice.service.DocumentService;
 
@@ -27,6 +32,12 @@ public class DocumentServiceImpl implements DocumentService {
 
 	private final DocumentRepository documentRepository;
 
+	private final DocumentCollaboratorRepository collaboratorRepository;
+
+	/*
+	 * CREATE DOCUMENT
+	 */
+
 	@Override
 	public DocumentResponse createDocument(CreateDocumentRequest request, String ownerId) {
 
@@ -35,55 +46,103 @@ public class DocumentServiceImpl implements DocumentService {
 
 		Document savedDocument = documentRepository.save(document);
 
-		return DocumentResponse.builder().id(savedDocument.getId()).title(savedDocument.getTitle())
-				.content(savedDocument.getContent()).ownerId(savedDocument.getOwnerId())
-				.createdAt(savedDocument.getCreatedAt()).updatedAt(savedDocument.getUpdatedAt()).build();
+		return mapToResponse(savedDocument);
 	}
 
+	/*
+	 * GET MY DOCUMENTS
+	 */
+
 	@Override
-	public PagedResponse<DocumentResponse> getMyDocuments(String ownerId, int page, int size, String sortBy) {
+	public PagedResponse<DocumentResponse> getMyDocuments(String currentUser, int page, int size, String sortBy) {
 
-		Pageable pageable = PageRequest.of(page, size, Sort.by(sortBy).descending());
+		Pageable pageable =
 
-		Page<Document> documentPage = documentRepository.findByOwnerId(ownerId, pageable);
+				PageRequest.of(
 
-		List<DocumentResponse> documents = documentPage.getContent().stream()
-				.map(document -> DocumentResponse.builder().id(document.getId()).title(document.getTitle())
-						.content(document.getContent()).ownerId(document.getOwnerId())
-						.createdAt(document.getCreatedAt()).updatedAt(document.getUpdatedAt()).build())
-				.toList();
+						page,
 
-		return PagedResponse.<DocumentResponse>builder().content(documents).page(documentPage.getNumber())
-				.size(documentPage.getSize()).totalElements(documentPage.getTotalElements())
-				.totalPages(documentPage.getTotalPages()).last(documentPage.isLast()).build();
+						size,
+
+						Sort.by(sortBy).descending());
+
+		Page<Document> ownedPage =
+
+				documentRepository.findByOwnerId(
+
+						currentUser,
+
+						pageable);
+
+		List<DocumentResponse> responses =
+
+				ownedPage.getContent()
+
+						.stream()
+
+						.map(this::mapToResponse)
+
+						.toList();
+
+		return PagedResponse.<DocumentResponse>builder()
+
+				.content(responses)
+
+				.page(page)
+
+				.size(size)
+
+				.totalElements(ownedPage.getTotalElements())
+
+				.totalPages(ownedPage.getTotalPages())
+
+				.last(ownedPage.isLast())
+
+				.build();
+	}
+	/*
+	 * GET SHARED DOCUMENT
+	 */
+
+	@Override
+	public List<DocumentResponse> getSharedDocuments(String currentUser) {
+
+		List<DocumentCollaborator> collaborations = collaboratorRepository.findByUserEmail(currentUser);
+
+		return collaborations.stream().map(DocumentCollaborator::getDocument).map(this::mapToResponse).toList();
+	}
+	/*
+	 * GET DOCUMENT
+	 */
+
+	@Override
+	public DocumentResponse getDocumentById(String id, String currentUser) {
+
+		Document document = getDocumentOrThrow(id);
+
+		validateAccess(document, currentUser);
+
+		return mapToResponse(document);
 	}
 
-	@Override
-	public void deleteDocument(String id, String ownerId) {
-
-		Document document = documentRepository.findById(id)
-
-				.orElseThrow(() -> new ResourceNotFoundException("Document not found"));
-
-		if (!document.getOwnerId().equals(ownerId)) {
-
-			throw new UnauthorizedException("You are not allowed to delete this document");
-		}
-
-		documentRepository.delete(document);
-	}
+	/*
+	 * UPDATE DOCUMENT
+	 */
 
 	@Override
-	public DocumentResponse updateDocument(String id, UpdateDocumentRequest request, String ownerId) {
+	public DocumentResponse updateDocument(
 
-		Document document = documentRepository.findById(id)
+			String id,
 
-				.orElseThrow(() -> new ResourceNotFoundException("Document not found"));
+			UpdateDocumentRequest request,
 
-		if (!document.getOwnerId().equals(ownerId)) {
+			String currentUser
 
-			throw new UnauthorizedException("You are not allowed to update this document");
-		}
+	) {
+
+		Document document = getDocumentOrThrow(id);
+
+		validateAccess(document, currentUser);
 
 		document.setTitle(request.getTitle());
 
@@ -91,27 +150,199 @@ public class DocumentServiceImpl implements DocumentService {
 
 		document.setUpdatedAt(LocalDateTime.now());
 
-		Document updatedDocument = documentRepository.save(document);
+		Document updatedDocument =
 
-		return DocumentResponse.builder().id(updatedDocument.getId()).title(updatedDocument.getTitle())
-				.content(updatedDocument.getContent()).ownerId(updatedDocument.getOwnerId())
-				.createdAt(updatedDocument.getCreatedAt()).updatedAt(updatedDocument.getUpdatedAt()).build();
+				documentRepository.save(document);
+
+		return mapToResponse(updatedDocument);
 	}
 
+	/*
+	 * DELETE DOCUMENT OWNER ONLY
+	 */
+
 	@Override
-	public DocumentResponse getDocumentById(String id, String ownerId) {
+	public void deleteDocument(
 
-		Document document = documentRepository.findById(id)
+			String id,
 
-				.orElseThrow(() -> new ResourceNotFoundException("Document not found"));
+			String currentUser
 
-		if (!document.getOwnerId().equals(ownerId)) {
+	) {
+
+		Document document = getDocumentOrThrow(id);
+
+		if (!document.getOwnerId()
+
+				.equals(currentUser)) {
+
+			throw new UnauthorizedException(
+
+					"You are not allowed to delete this document");
+		}
+
+		documentRepository.delete(document);
+	}
+
+	/*
+	 * SHARE DOCUMENT
+	 */
+
+	@Override
+	public void shareDocument(String documentId, ShareDocumentRequest request, String currentUser) {
+
+		Document document = getDocumentOrThrow(documentId);
+
+		/*
+		 * OWNER ONLY
+		 */
+
+		if (!document.getOwnerId()
+
+				.equals(currentUser)) {
+
+			throw new UnauthorizedException("Only owner can share document");
+		}
+
+		/*
+		 * ALREADY SHARED?
+		 */
+
+		boolean exists =
+
+				collaboratorRepository
+
+						.findByDocumentIdAndUserEmail(
+
+								documentId,
+
+								request.getUserEmail()
+
+						)
+
+						.isPresent();
+
+		if (exists) {
+
+			throw new ConflictException("Document already shared with this user");
+		}
+
+		/*
+		 * CREATE COLLABORATOR
+		 */
+
+		DocumentCollaborator collaborator =
+
+				DocumentCollaborator.builder()
+
+						.document(document)
+
+						.userEmail(request.getUserEmail())
+
+						.role(request.getRole())
+
+						.build();
+
+		collaboratorRepository.save(collaborator);
+	}
+
+	/*
+	 * ACCESS VALIDATION
+	 */
+
+	private void validateAccess(
+
+			Document document,
+
+			String userEmail
+
+	) {
+
+		if (!hasAccess(document, userEmail)) {
 
 			throw new UnauthorizedException("You are not allowed to access this document");
 		}
+	}
 
-		return DocumentResponse.builder().id(document.getId()).title(document.getTitle()).content(document.getContent())
-				.ownerId(document.getOwnerId()).createdAt(document.getCreatedAt()).updatedAt(document.getUpdatedAt())
+	/*
+	 * OWNER OR COLLABORATOR
+	 */
+
+	private boolean hasAccess(
+
+			Document document,
+
+			String userEmail
+
+	) {
+
+		/*
+		 * OWNER
+		 */
+
+		if (document.getOwnerId()
+
+				.equals(userEmail)) {
+
+			return true;
+		}
+
+		/*
+		 * COLLABORATOR
+		 */
+
+		return collaboratorRepository
+
+				.findByDocumentIdAndUserEmail(
+
+						document.getId(),
+
+						userEmail
+
+				)
+
+				.isPresent();
+	}
+
+	/*
+	 * GET DOCUMENT
+	 */
+
+	private Document getDocumentOrThrow(String id) {
+
+		return documentRepository
+
+				.findById(id)
+
+				.orElseThrow(() ->
+
+				new ResourceNotFoundException("Document not found"));
+	}
+
+	/*
+	 * MAP RESPONSE
+	 */
+
+	private DocumentResponse mapToResponse(
+
+			Document document
+
+	) {
+
+		return DocumentResponse.builder()
+
+				.id(document.getId())
+
+				.title(document.getTitle())
+
+				.content(document.getContent())
+
+				.ownerId(document.getOwnerId())
+
+				.createdAt(document.getCreatedAt())
+
+				.updatedAt(document.getUpdatedAt())
+
 				.build();
 	}
 }

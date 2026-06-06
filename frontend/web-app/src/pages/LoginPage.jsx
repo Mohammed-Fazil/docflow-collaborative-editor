@@ -11,11 +11,23 @@ function LoginPage() {
 
   const { login: saveLogin } = useAuth();
 
+  /*
+    FORM STATE
+  */
+
   const [email, setEmail] = useState("");
 
   const [password, setPassword] = useState("");
 
+  /*
+    UI STATE
+  */
+
   const [loading, setLoading] = useState(false);
+
+  /*
+    SUBMIT
+  */
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -29,7 +41,23 @@ function LoginPage() {
         password,
       });
 
-      saveLogin(response.accessToken, response.refreshToken);
+      /*
+        SAVE TOKENS
+      */
+
+      saveLogin(
+        response.accessToken,
+
+        response.refreshToken,
+
+        {
+          email,
+        },
+      );
+
+      /*
+        NAVIGATE
+      */
 
       navigate("/dashboard");
     } catch (error) {
@@ -43,7 +71,7 @@ function LoginPage() {
 
   return (
     <div className="min-h-screen flex">
-      {/* LEFT SIDE */}
+      {/* LEFT */}
 
       <div className="hidden lg:flex w-1/2 bg-[#5B5BD6] text-white flex-col justify-center px-20">
         <h1 className="text-6xl font-bold leading-tight mb-6">
@@ -60,7 +88,7 @@ function LoginPage() {
         </p>
       </div>
 
-      {/* RIGHT SIDE */}
+      {/* RIGHT */}
 
       <div className="flex-1 flex items-center justify-center px-6">
         <div className="w-full max-w-md bg-white rounded-3xl shadow-xl p-10 border border-gray-100">

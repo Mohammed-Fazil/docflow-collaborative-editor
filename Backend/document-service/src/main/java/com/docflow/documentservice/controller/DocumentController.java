@@ -1,5 +1,8 @@
 package com.docflow.documentservice.controller;
 
+import java.util.List;
+
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -14,6 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.docflow.documentservice.dto.CreateDocumentRequest;
 import com.docflow.documentservice.dto.DocumentResponse;
 import com.docflow.documentservice.dto.PagedResponse;
+import com.docflow.documentservice.dto.ShareDocumentRequest;
 import com.docflow.documentservice.dto.UpdateDocumentRequest;
 import com.docflow.documentservice.service.DocumentService;
 
@@ -59,5 +63,20 @@ public class DocumentController {
 	public DocumentResponse getDocumentById(@PathVariable String id, Authentication authentication) {
 
 		return documentService.getDocumentById(id, authentication.getName());
+	}
+
+	@PostMapping("/{id}/share")
+	public ResponseEntity<String> shareDocument(@PathVariable String id, @RequestBody ShareDocumentRequest request,
+			Authentication authentication) {
+
+		documentService.shareDocument(id, request, authentication.getName());
+		return ResponseEntity.ok("Document shared successfully");
+
+	}
+
+	@GetMapping("/shared")
+	public ResponseEntity<List<DocumentResponse>> getSharedDocuments(Authentication authentication) {
+
+		return ResponseEntity.ok(documentService.getSharedDocuments(authentication.getName()));
 	}
 }

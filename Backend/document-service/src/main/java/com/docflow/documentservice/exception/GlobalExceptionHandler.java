@@ -9,45 +9,30 @@ import org.springframework.web.bind.annotation.*;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler(
-            ResourceNotFoundException.class
-    )
-    public ResponseEntity<ErrorResponse>
-    handleNotFound(
-            ResourceNotFoundException ex
-    ) {
+	@ExceptionHandler(ResourceNotFoundException.class)
+	public ResponseEntity<ErrorResponse> handleNotFound(ResourceNotFoundException ex) {
 
-        ErrorResponse response =
-                ErrorResponse.builder()
-                        .timestamp(LocalDateTime.now())
-                        .status(404)
-                        .error("Not Found")
-                        .message(ex.getMessage())
-                        .build();
+		ErrorResponse response = ErrorResponse.builder().timestamp(LocalDateTime.now()).status(404).error("Not Found")
+				.message(ex.getMessage()).build();
 
-        return ResponseEntity
-                .status(HttpStatus.NOT_FOUND)
-                .body(response);
-    }
+		return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+	}
 
-    @ExceptionHandler(
-            UnauthorizedException.class
-    )
-    public ResponseEntity<ErrorResponse>
-    handleUnauthorized(
-            UnauthorizedException ex
-    ) {
+	@ExceptionHandler(UnauthorizedException.class)
+	public ResponseEntity<ErrorResponse> handleUnauthorized(UnauthorizedException ex) {
 
-        ErrorResponse response =
-                ErrorResponse.builder()
-                        .timestamp(LocalDateTime.now())
-                        .status(403)
-                        .error("Forbidden")
-                        .message(ex.getMessage())
-                        .build();
+		ErrorResponse response = ErrorResponse.builder().timestamp(LocalDateTime.now()).status(403).error("Forbidden")
+				.message(ex.getMessage()).build();
 
-        return ResponseEntity
-                .status(HttpStatus.FORBIDDEN)
-                .body(response);
-    }
+		return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
+	}
+
+	@ExceptionHandler(ConflictException.class)
+	public ResponseEntity<ErrorResponse> handleConflictException(ConflictException ex) {
+
+		ErrorResponse error = ErrorResponse.builder().message(ex.getMessage()).status(HttpStatus.CONFLICT.value())
+				.timestamp(LocalDateTime.now()).build();
+
+		return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
+	}
 }
