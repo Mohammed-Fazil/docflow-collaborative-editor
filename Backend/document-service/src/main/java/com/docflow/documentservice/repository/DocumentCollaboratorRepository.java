@@ -1,7 +1,6 @@
 package com.docflow.documentservice.repository;
 
 import java.util.List;
-
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -15,4 +14,5 @@ public interface DocumentCollaboratorRepository extends JpaRepository<DocumentCo
 	Optional<DocumentCollaborator> findByDocumentIdAndUserEmail(String documentId, String userEmail);
 
 	List<DocumentCollaborator> findByDocumentId(String documentId);
+
 }

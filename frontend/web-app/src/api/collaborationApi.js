@@ -9,6 +9,7 @@ export const addCollaborator = async (
     documentId,
 
     userEmail,
+    role,
 
 ) => {
 
@@ -19,7 +20,7 @@ export const addCollaborator = async (
         {
             userEmail,
 
-            role: "EDITOR",
+            role,
         },
     );
 

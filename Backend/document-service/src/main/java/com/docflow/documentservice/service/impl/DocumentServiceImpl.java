@@ -3,6 +3,7 @@ package com.docflow.documentservice.service.impl;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -23,6 +24,7 @@ import com.docflow.documentservice.exception.ResourceNotFoundException;
 import com.docflow.documentservice.exception.UnauthorizedException;
 import com.docflow.documentservice.repository.DocumentCollaboratorRepository;
 import com.docflow.documentservice.repository.DocumentRepository;
+import com.docflow.documentservice.role.CollaboratorRole;
 import com.docflow.documentservice.service.DocumentService;
 
 import lombok.RequiredArgsConstructor;
@@ -47,7 +49,7 @@ public class DocumentServiceImpl implements DocumentService {
 
 		Document savedDocument = documentRepository.save(document);
 
-		return mapToResponse(savedDocument);
+		return mapToResponse(savedDocument,ownerId);
 	}
 
 	/*
@@ -75,7 +77,7 @@ public class DocumentServiceImpl implements DocumentService {
 
 						pageable);
 
-		List<DocumentResponse> responses = ownedPage.getContent().stream().map(this::mapToResponse).toList();
+		List<DocumentResponse> responses = ownedPage.getContent().stream().map(document -> mapToResponse(document, currentUser)).toList();
 
 		return PagedResponse.<DocumentResponse>builder().content(responses).page(page).size(size)
 				.totalElements(ownedPage.getTotalElements()).totalPages(ownedPage.getTotalPages())
@@ -90,7 +92,10 @@ public class DocumentServiceImpl implements DocumentService {
 
 		List<DocumentCollaborator> collaborations = collaboratorRepository.findByUserEmail(currentUser);
 
-		return collaborations.stream().map(DocumentCollaborator::getDocument).map(this::mapToResponse).toList();
+		return collaborations.stream()
+		        .map(DocumentCollaborator::getDocument)
+		        .map(document -> mapToResponse(document, currentUser))
+		        .toList();
 	}
 	/*
 	 * GET DOCUMENT
@@ -103,7 +108,7 @@ public class DocumentServiceImpl implements DocumentService {
 
 		validateAccess(document, currentUser);
 
-		return mapToResponse(document);
+		return mapToResponse(document,currentUser);
 	}
 
 	/*
@@ -114,12 +119,14 @@ public class DocumentServiceImpl implements DocumentService {
 	public DocumentResponse updateDocument(String id, UpdateDocumentRequest request, String currentUser) {
 
 		Document document = getDocumentOrThrow(id);
-		validateAccess(document, currentUser);
+		if (!canEdit(document, currentUser)) {
+			throw new UnauthorizedException("You do not have edit permission");
+		}
 		document.setTitle(request.getTitle());
 		document.setContent(request.getContent());
 		document.setUpdatedAt(LocalDateTime.now());
 		Document updatedDocument = documentRepository.save(document);
-		return mapToResponse(updatedDocument);
+		return mapToResponse(updatedDocument,currentUser);
 	}
 
 	/*
@@ -219,10 +226,24 @@ public class DocumentServiceImpl implements DocumentService {
 	 * MAP RESPONSE
 	 */
 
-	private DocumentResponse mapToResponse(Document document) {
+	private DocumentResponse mapToResponse(Document document, String currentUser) {
 
-		return DocumentResponse.builder().id(document.getId()).title(document.getTitle()).content(document.getContent())
-				.ownerId(document.getOwnerId()).createdAt(document.getCreatedAt()).updatedAt(document.getUpdatedAt())
+		return DocumentResponse.builder()
+
+				.id(document.getId())
+
+				.title(document.getTitle())
+
+				.content(document.getContent())
+
+				.ownerId(document.getOwnerId())
+
+				.createdAt(document.getCreatedAt())
+
+				.updatedAt(document.getUpdatedAt())
+
+				.currentUserRole(getCurrentUserRole(document, currentUser))
+
 				.build();
 	}
 
@@ -282,5 +303,36 @@ public class DocumentServiceImpl implements DocumentService {
 								"Collaborator not found"));
 
 		collaboratorRepository.delete(collaborator);
+	}
+
+	private boolean canEdit(Document document, String userEmail) {
+
+		/*
+		 * OWNER
+		 */
+
+		if (document.getOwnerId().equals(userEmail)) {
+
+			return true;
+		}
+
+		return collaboratorRepository.findByDocumentIdAndUserEmail(document.getId(), userEmail)
+
+				.map(collaborator -> collaborator.getRole() == CollaboratorRole.EDITOR).orElse(false);
+	}
+
+	private String getCurrentUserRole(Document document, String currentUser) {
+
+		if (document.getOwnerId().equals(currentUser)) {
+			return "OWNER";
+		}
+
+		return collaboratorRepository
+
+				.findByDocumentIdAndUserEmail(document.getId(), currentUser)
+
+				.map(collaborator -> collaborator.getRole().name())
+
+				.orElse("VIEWER");
 	}
 }

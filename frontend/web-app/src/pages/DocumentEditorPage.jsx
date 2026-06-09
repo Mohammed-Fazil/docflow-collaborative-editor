@@ -62,6 +62,16 @@ function DocumentEditorPage() {
   const [sharing, setSharing] = useState(false);
   const [collaborators, setCollaborators] = useState([]);
 
+  const [currentUserRole, setCurrentUserRole] = useState("");
+
+  const isOwner = currentUserRole === "OWNER";
+
+  const isEditor = currentUserRole === "EDITOR";
+
+  const isViewer = currentUserRole === "VIEWER";
+
+  const [shareRole, setShareRole] = useState("EDITOR");
+
   /*
   Load Collaborators
   */
@@ -92,6 +102,7 @@ function DocumentEditorPage() {
       setTitle(response.title);
 
       setContent(response.content || "");
+      setCurrentUserRole(response.currentUserRole);
     } catch (error) {
       console.error(error);
 
@@ -213,7 +224,7 @@ function DocumentEditorPage() {
     try {
       setSharing(true);
 
-      await addCollaborator(id, shareEmail);
+      await addCollaborator(id, shareEmail, shareRole);
 
       alert("Collaborator added successfully");
 
@@ -303,6 +314,7 @@ function DocumentEditorPage() {
             <input
               type="text"
               value={title}
+              disabled={isViewer}
               onChange={(e) => setTitle(e.target.value)}
               className="text-3xl font-bold bg-transparent outline-none"
             />
@@ -325,6 +337,11 @@ function DocumentEditorPage() {
                 </div>
               ))}
             </div>
+            {/* ROLE */}
+
+            <div className="px-3 py-2 rounded-xl bg-blue-50 text-blue-700 text-sm font-medium">
+              {currentUserRole}
+            </div>
 
             {/* SAVE STATUS */}
 
@@ -334,31 +351,48 @@ function DocumentEditorPage() {
 
             {/* SHARE */}
 
-            <div className="flex items-center gap-3">
-              <input
-                type="email"
-                placeholder="Invite collaborator"
-                value={shareEmail}
-                onChange={(e) => setShareEmail(e.target.value)}
-                className="px-4 py-3 rounded-2xl border border-gray-200 outline-none focus:ring-2 focus:ring-[#5B5BD6]"
-              />
+            {isOwner && (
+              <div className="flex items-center gap-3">
+                <input
+                  type="email"
+                  placeholder="Invite collaborator"
+                  value={shareEmail}
+                  onChange={(e) => setShareEmail(e.target.value)}
+                  className="px-4 py-3 rounded-2xl border border-gray-200 outline-none focus:ring-2 focus:ring-[#5B5BD6]"
+                />
+                <select
+                  value={shareRole}
+                  onChange={(e) => setShareRole(e.target.value)}
+                  className="px-4 py-3 rounded-2xl border border-gray-200"
+                >
+                  <option value="EDITOR">Editor</option>
+                  <option value="VIEWER">Viewer</option>
+                </select>
 
-              <button
-                onClick={handleShare}
-                disabled={sharing}
-                className="flex items-center gap-2 bg-black hover:bg-gray-900 text-white px-5 py-3 rounded-2xl transition"
-              >
-                <Share2 size={18} />
+                <button
+                  onClick={handleShare}
+                  disabled={sharing}
+                  className="flex items-center gap-2 bg-black hover:bg-gray-900 text-white px-5 py-3 rounded-2xl transition"
+                >
+                  <Share2 size={18} />
 
-                {sharing ? "Sharing..." : "Share"}
-              </button>
-            </div>
+                  {sharing ? "Sharing..." : "Share"}
+                </button>
+              </div>
+            )}
 
             {/* SAVE BUTTON */}
 
             <button
+              disabled={isViewer}
               onClick={handleSave}
-              className="flex items-center gap-2 bg-[#5B5BD6] hover:bg-[#4B4BC7] transition text-white px-5 py-3 rounded-2xl shadow-sm"
+              className={`flex items-center gap-2 text-white px-5 py-3 rounded-2xl shadow-sm
+
+  ${
+    isViewer
+      ? "bg-gray-400 cursor-not-allowed"
+      : "bg-[#5B5BD6] hover:bg-[#4B4BC7]"
+  }`}
             >
               <Save size={18} />
               Save
@@ -374,7 +408,16 @@ function DocumentEditorPage() {
           {/* EDITOR */}
 
           <div className="col-span-2">
-            <TiptapEditor content={content} onChange={setContent} />
+            {isViewer && (
+              <div className="mb-4 bg-yellow-50 border border-yellow-200 text-yellow-700 px-4 py-3 rounded-2xl">
+                Read Only Mode - You have viewer access to this document.
+              </div>
+            )}
+            <TiptapEditor
+              content={content}
+              onChange={setContent}
+              editable={!isViewer}
+            />
           </div>
 
           {/* COLLABORATORS */}
@@ -401,7 +444,7 @@ function DocumentEditorPage() {
                       </p>
                     </div>
 
-                    {!collaborator.owner && (
+                    {isOwner && !collaborator.owner && (
                       <button
                         onClick={() =>
                           handleRemoveCollaborator(collaborator.email)

@@ -21,8 +21,10 @@ function TiptapEditor({
   content,
 
   onChange,
+  editable = true,
 }) {
   const editor = useEditor({
+    editable,
     extensions: [
       StarterKit.configure({
         heading: {
@@ -65,91 +67,93 @@ function TiptapEditor({
     <div>
       {/* TOOLBAR */}
 
-      <div className="sticky top-[88px] z-40 bg-white/90 backdrop-blur-xl border border-gray-200 rounded-2xl p-2 mb-8 flex gap-2 shadow-sm flex-wrap">
-        {/* BOLD */}
+      {editable && (
+        <div className="sticky top-[88px] z-40 bg-white/90 backdrop-blur-xl border border-gray-200 rounded-2xl p-2 mb-8 flex gap-2 shadow-sm flex-wrap">
+          {/* BOLD */}
 
-        <button
-          onClick={() => editor.chain().focus().toggleBold().run()}
-          className={buttonClass(editor.isActive("bold"))}
-        >
-          <Bold size={18} />
-        </button>
+          <button
+            onClick={() => editor.chain().focus().toggleBold().run()}
+            className={buttonClass(editor.isActive("bold"))}
+          >
+            <Bold size={18} />
+          </button>
 
-        {/* ITALIC */}
+          {/* ITALIC */}
 
-        <button
-          onClick={() => editor.chain().focus().toggleItalic().run()}
-          className={buttonClass(editor.isActive("italic"))}
-        >
-          <Italic size={18} />
-        </button>
+          <button
+            onClick={() => editor.chain().focus().toggleItalic().run()}
+            className={buttonClass(editor.isActive("italic"))}
+          >
+            <Italic size={18} />
+          </button>
 
-        {/* UNDERLINE */}
+          {/* UNDERLINE */}
 
-        <button
-          onClick={() => editor.chain().focus().toggleUnderline().run()}
-          className={buttonClass(editor.isActive("underline"))}
-        >
-          <UnderlineIcon size={18} />
-        </button>
+          <button
+            onClick={() => editor.chain().focus().toggleUnderline().run()}
+            className={buttonClass(editor.isActive("underline"))}
+          >
+            <UnderlineIcon size={18} />
+          </button>
 
-        {/* BULLET LIST */}
+          {/* BULLET LIST */}
 
-        <button
-          onClick={() => editor.chain().focus().toggleBulletList().run()}
-          className={buttonClass(editor.isActive("bulletList"))}
-        >
-          <List size={18} />
-        </button>
+          <button
+            onClick={() => editor.chain().focus().toggleBulletList().run()}
+            className={buttonClass(editor.isActive("bulletList"))}
+          >
+            <List size={18} />
+          </button>
 
-        {/* ORDERED LIST */}
+          {/* ORDERED LIST */}
 
-        <button
-          onClick={() => editor.chain().focus().toggleOrderedList().run()}
-          className={buttonClass(editor.isActive("orderedList"))}
-        >
-          <ListOrdered size={18} />
-        </button>
+          <button
+            onClick={() => editor.chain().focus().toggleOrderedList().run()}
+            className={buttonClass(editor.isActive("orderedList"))}
+          >
+            <ListOrdered size={18} />
+          </button>
 
-        {/* H1 */}
+          {/* H1 */}
 
-        <button
-          onClick={() =>
-            editor
-              .chain()
-              .focus()
-              .toggleHeading({
+          <button
+            onClick={() =>
+              editor
+                .chain()
+                .focus()
+                .toggleHeading({
+                  level: 1,
+                })
+                .run()
+            }
+            className={buttonClass(
+              editor.isActive("heading", {
                 level: 1,
-              })
-              .run()
-          }
-          className={buttonClass(
-            editor.isActive("heading", {
-              level: 1,
-            }),
-          )}
-        >
-          <Heading1 size={18} />
-        </button>
+              }),
+            )}
+          >
+            <Heading1 size={18} />
+          </button>
 
-        {/* BLOCKQUOTE */}
+          {/* BLOCKQUOTE */}
 
-        <button
-          onClick={() => editor.chain().focus().toggleBlockquote().run()}
-          className={buttonClass(editor.isActive("blockquote"))}
-        >
-          <Quote size={18} />
-        </button>
+          <button
+            onClick={() => editor.chain().focus().toggleBlockquote().run()}
+            className={buttonClass(editor.isActive("blockquote"))}
+          >
+            <Quote size={18} />
+          </button>
 
-        {/* CODE BLOCK */}
+          {/* CODE BLOCK */}
 
-        <button
-          onClick={() => editor.chain().focus().toggleCodeBlock().run()}
-          className={buttonClass(editor.isActive("codeBlock"))}
-        >
-          <Code2 size={18} />
-        </button>
-      </div>
+          <button
+            onClick={() => editor.chain().focus().toggleCodeBlock().run()}
+            className={buttonClass(editor.isActive("codeBlock"))}
+          >
+            <Code2 size={18} />
+          </button>
+        </div>
+      )}
 
       {/* EDITOR */}
 
