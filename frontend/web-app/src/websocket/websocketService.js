@@ -10,15 +10,7 @@ let stompClient = null;
     CONNECT
 */
 
-export const connectWebSocket = (
-
-  documentId,
-
-  onDocumentUpdate,
-
-  onPresenceUpdate
-
-) => {
+export const connectWebSocket = (documentId, onDocumentUpdate, onPresenceUpdate, onTypingUpdate) => {
 
   const socket = new SockJS(
 
@@ -68,6 +60,18 @@ export const connectWebSocket = (
             JSON.parse(message.body);
 
           onPresenceUpdate(body);
+        }
+      );
+      stompClient.subscribe(
+
+        `/topic/typing/${documentId}`,
+
+        (message) => {
+
+          const body =
+            JSON.parse(message.body);
+
+          onTypingUpdate(body);
         }
       );
     },
@@ -168,5 +172,28 @@ export const disconnectWebSocket = () => {
   if (stompClient) {
 
     stompClient.deactivate();
+  }
+};
+
+export const sendTypingEvent = (
+
+  typingMessage
+
+) => {
+
+  if (
+    stompClient &&
+    stompClient.connected
+  ) {
+
+    stompClient.publish({
+
+      destination:
+        "/app/document.typing",
+
+      body: JSON.stringify(
+        typingMessage
+      ),
+    });
   }
 };

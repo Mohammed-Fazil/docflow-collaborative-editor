@@ -10,6 +10,7 @@ import org.springframework.stereotype.Controller;
 
 import com.docflow.collaborationservice.dto.DocumentChangeMessage;
 import com.docflow.collaborationservice.dto.PresenceMessage;
+import com.docflow.collaborationservice.dto.TypingMessage;
 import com.docflow.collaborationservice.service.PresenceService;
 
 import lombok.RequiredArgsConstructor;
@@ -36,33 +37,19 @@ public class CollaborationController {
 	 */
 
 	@MessageMapping("/document.join")
-	public void handleJoin(
-
-			@Payload PresenceMessage message,
-
-			SimpMessageHeaderAccessor headerAccessor
-
-	) {
+	public void handleJoin(@Payload PresenceMessage message, SimpMessageHeaderAccessor headerAccessor) {
 
 		/*
 		 * SESSION ID
 		 */
 
-		String sessionId =
-
-				headerAccessor.getSessionId();
+		String sessionId = headerAccessor.getSessionId();
 
 		/*
 		 * ADD USER
 		 */
 
-		presenceService.addUser(
-
-				sessionId,
-
-				message.getDocumentId(),
-
-				message.getUserEmail());
+		presenceService.addUser(sessionId, message.getDocumentId(), message.getUserEmail());
 
 		/*
 		 * BROADCAST USERS
@@ -76,13 +63,7 @@ public class CollaborationController {
 	 */
 
 	@MessageMapping("/document.leave")
-	public void handleLeave(
-
-			@Payload PresenceMessage message,
-
-			SimpMessageHeaderAccessor headerAccessor
-
-	) {
+	public void handleLeave(@Payload PresenceMessage message, SimpMessageHeaderAccessor headerAccessor) {
 
 		/*
 		 * SESSION ID
@@ -104,6 +85,15 @@ public class CollaborationController {
 	}
 
 	/*
+	 * USER TYPING
+	 */
+	@MessageMapping("/document.typing")
+	public void handleTyping(@Payload TypingMessage message) {
+
+		messagingTemplate.convertAndSend("/topic/typing/" + message.getDocumentId(), message);
+	}
+
+	/*
 	 * BROADCAST USERS
 	 */
 
@@ -113,4 +103,5 @@ public class CollaborationController {
 
 		messagingTemplate.convertAndSend("/topic/presence/" + documentId, users);
 	}
+
 }

@@ -18,6 +18,7 @@ import {
   disconnectWebSocket,
   joinDocument,
   leaveDocument,
+  sendTypingEvent,
 } from "../websocket/websocketService";
 
 import { useAuth } from "../context/AuthContext";
@@ -72,6 +73,10 @@ function DocumentEditorPage() {
 
   const [shareRole, setShareRole] = useState("EDITOR");
 
+  const [typingUsers, setTypingUsers] = useState([]);
+
+  const [typingTimeoutId, setTypingTimeoutId] = useState(null);
+
   /*
   Load Collaborators
   */
@@ -125,15 +130,11 @@ function DocumentEditorPage() {
       id,
 
       /*
-          DOCUMENT UPDATE
-        */
+    DOCUMENT UPDATE
+  */
 
       (message) => {
         console.log("Received update:", message);
-
-        /*
-            PREVENT LOOP
-          */
 
         setIsRemoteUpdate(true);
 
@@ -141,13 +142,33 @@ function DocumentEditorPage() {
       },
 
       /*
-          ACTIVE USERS
-        */
+    PRESENCE UPDATE
+  */
 
       (users) => {
         console.log("Active users:", users);
 
         setActiveUsers(users);
+      },
+
+      /*
+    TYPING UPDATE
+  */
+
+      (typingMessage) => {
+        if (typingMessage.userEmail === user?.email) {
+          return;
+        }
+
+        if (typingMessage.typing) {
+          setTypingUsers((prev) => [
+            ...new Set([...prev, typingMessage.userEmail]),
+          ]);
+        } else {
+          setTypingUsers((prev) =>
+            prev.filter((email) => email !== typingMessage.userEmail),
+          );
+        }
       },
     );
 
@@ -190,8 +211,8 @@ function DocumentEditorPage() {
 
   useEffect(() => {
     /*
-        SKIP REMOTE UPDATES
-      */
+      SKIP REMOTE UPDATES
+    */
 
     if (isRemoteUpdate) {
       setIsRemoteUpdate(false);
@@ -200,8 +221,8 @@ function DocumentEditorPage() {
     }
 
     /*
-        SEND EDIT EVENT
-      */
+      SEND DOCUMENT CHANGE
+    */
 
     sendDocumentChange({
       documentId: id,
@@ -210,6 +231,42 @@ function DocumentEditorPage() {
 
       userEmail: user?.email,
     });
+
+    /*
+      USER STARTED TYPING
+    */
+
+    sendTypingEvent({
+      documentId: id,
+
+      userEmail: user?.email,
+
+      typing: true,
+    });
+
+    /*
+      CLEAR OLD TIMER
+    */
+
+    if (typingTimeoutId) {
+      clearTimeout(typingTimeoutId);
+    }
+
+    /*
+      USER STOPPED TYPING
+    */
+
+    const timeout = setTimeout(() => {
+      sendTypingEvent({
+        documentId: id,
+
+        userEmail: user?.email,
+
+        typing: false,
+      });
+    }, 2000);
+
+    setTypingTimeoutId(timeout);
   }, [content]);
 
   /*
@@ -411,6 +468,11 @@ function DocumentEditorPage() {
             {isViewer && (
               <div className="mb-4 bg-yellow-50 border border-yellow-200 text-yellow-700 px-4 py-3 rounded-2xl">
                 Read Only Mode - You have viewer access to this document.
+              </div>
+            )}
+            {typingUsers.length > 0 && (
+              <div className="mb-4 bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded-2xl">
+                {typingUsers.join(", ")} is typing...
               </div>
             )}
             <TiptapEditor
