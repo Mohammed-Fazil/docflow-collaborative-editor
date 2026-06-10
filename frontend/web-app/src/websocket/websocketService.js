@@ -10,7 +10,7 @@ let stompClient = null;
     CONNECT
 */
 
-export const connectWebSocket = (documentId, onDocumentUpdate, onPresenceUpdate, onTypingUpdate) => {
+export const connectWebSocket = (documentId, onDocumentUpdate, onPresenceUpdate, onTypingUpdate, onCursorUpdate) => {
 
   const socket = new SockJS(
 
@@ -72,6 +72,21 @@ export const connectWebSocket = (documentId, onDocumentUpdate, onPresenceUpdate,
             JSON.parse(message.body);
 
           onTypingUpdate(body);
+        }
+      );
+      stompClient.subscribe(
+
+        `/topic/cursor/${documentId}`,
+
+        (message) => {
+
+          const body =
+
+            JSON.parse(
+              message.body
+            );
+
+          onCursorUpdate(body);
         }
       );
     },
@@ -193,6 +208,29 @@ export const sendTypingEvent = (
 
       body: JSON.stringify(
         typingMessage
+      ),
+    });
+  }
+};
+
+export const sendCursorEvent = (
+
+  cursorMessage
+
+) => {
+
+  if (
+    stompClient &&
+    stompClient.connected
+  ) {
+
+    stompClient.publish({
+
+      destination:
+        "/app/document.cursor",
+
+      body: JSON.stringify(
+        cursorMessage
       ),
     });
   }

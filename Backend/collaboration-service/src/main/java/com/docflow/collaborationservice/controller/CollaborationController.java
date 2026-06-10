@@ -8,6 +8,7 @@ import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Controller;
 
+import com.docflow.collaborationservice.dto.CursorMessage;
 import com.docflow.collaborationservice.dto.DocumentChangeMessage;
 import com.docflow.collaborationservice.dto.PresenceMessage;
 import com.docflow.collaborationservice.dto.TypingMessage;
@@ -93,6 +94,18 @@ public class CollaborationController {
 		messagingTemplate.convertAndSend("/topic/typing/" + message.getDocumentId(), message);
 	}
 
+	/*
+	 * USER CURSOR
+	 */
+	@MessageMapping("/document.cursor")
+	public void handleCursor(@Payload CursorMessage message) {
+
+		messagingTemplate.convertAndSend(
+
+				"/topic/cursor/" + message.getDocumentId(),
+
+				message);
+	}
 	/*
 	 * BROADCAST USERS
 	 */

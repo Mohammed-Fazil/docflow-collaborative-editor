@@ -73,6 +73,8 @@ function DocumentEditorPage() {
 
   const [shareRole, setShareRole] = useState("EDITOR");
 
+  const [cursorUsers, setCursorUsers] = useState({});
+
   const [typingUsers, setTypingUsers] = useState([]);
 
   const [typingTimeoutId, setTypingTimeoutId] = useState(null);
@@ -169,6 +171,22 @@ function DocumentEditorPage() {
             prev.filter((email) => email !== typingMessage.userEmail),
           );
         }
+      },
+
+      /*
+    CURSOR UPDATE
+*/
+
+      (cursorMessage) => {
+        if (cursorMessage.userEmail === user?.email) {
+          return;
+        }
+
+        setCursorUsers((prev) => ({
+          ...prev,
+
+          [cursorMessage.userEmail]: cursorMessage.position,
+        }));
       },
     );
 
@@ -470,6 +488,21 @@ function DocumentEditorPage() {
                 Read Only Mode - You have viewer access to this document.
               </div>
             )}
+            {/* CURSOR POSITIONS */}
+
+            {Object.keys(cursorUsers).length > 0 && (
+              <div className="mb-4 bg-purple-50 border border-purple-200 text-purple-700 px-4 py-3 rounded-2xl">
+                <h4 className="font-semibold mb-2">Cursor Positions</h4>
+
+                {Object.entries(cursorUsers)
+
+                  .map(([email, position]) => (
+                    <div key={email}>
+                      {email} → {position}
+                    </div>
+                  ))}
+              </div>
+            )}
             {typingUsers.length > 0 && (
               <div className="mb-4 bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded-2xl">
                 {typingUsers.join(", ")} is typing...
@@ -479,6 +512,9 @@ function DocumentEditorPage() {
               content={content}
               onChange={setContent}
               editable={!isViewer}
+              documentId={id}
+              userEmail={user?.email}
+              cursorUsers={cursorUsers}
             />
           </div>
 

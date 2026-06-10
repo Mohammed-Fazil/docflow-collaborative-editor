@@ -4,6 +4,10 @@ import StarterKit from "@tiptap/starter-kit";
 
 import Underline from "@tiptap/extension-underline";
 
+import { Decoration, DecorationSet } from "@tiptap/pm/view";
+
+import { Plugin } from "@tiptap/pm/state";
+
 import {
   Bold,
   Italic,
@@ -16,12 +20,48 @@ import {
 } from "lucide-react";
 
 import { useEffect } from "react";
+import { sendCursorEvent } from "../websocket/websocketService";
+
+const createCursorPlugin = (cursorUsers) => {
+  return new Plugin({
+    props: {
+      decorations(state) {
+        const decorations = [];
+
+        Object.entries(cursorUsers || {}).forEach(([email, position]) => {
+          const cursor = document.createElement("span");
+
+          cursor.className = "remote-cursor";
+
+          cursor.innerHTML = `🟢 ${email}`;
+
+          decorations.push(
+            Decoration.widget(
+              position,
+
+              cursor,
+            ),
+          );
+        });
+
+        return DecorationSet.create(
+          state.doc,
+
+          decorations,
+        );
+      },
+    },
+  });
+};
 
 function TiptapEditor({
   content,
 
   onChange,
   editable = true,
+  documentId,
+  userEmail,
+  cursorUsers,
 }) {
   const editor = useEditor({
     editable,
@@ -46,8 +86,23 @@ function TiptapEditor({
     onUpdate({ editor }) {
       onChange(editor.getHTML());
     },
-  });
+    onSelectionUpdate({ editor }) {
+      sendCursorEvent({
+        documentId,
 
+        userEmail,
+
+        position: editor.state.selection.anchor,
+      });
+    },
+  });
+  useEffect(() => {
+    if (!editor) {
+      return;
+    }
+
+    editor.registerPlugin(createCursorPlugin(cursorUsers));
+  }, [editor]);
   useEffect(() => {
     if (editor && content !== editor.getHTML()) {
       editor.commands.setContent(content);
