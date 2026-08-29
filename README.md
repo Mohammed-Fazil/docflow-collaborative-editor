@@ -51,7 +51,7 @@ The project is built as a small microservices system: a React frontend communica
 ## Project layout
 
 ```text
-DocFlow Version 2/
+DocFlow /
 ├── Backend/
 │   ├── eureka-server/          # Eureka service registry
 │   ├── api-gateway/            # REST routing gateway
