@@ -35,3 +35,22 @@ body {
 button {
   cursor: pointer;
 }
+.remote-cursor-label {
+  display: inline-block;
+
+  background: #dcfce7;
+
+  color: #166534;
+
+  border: 1px solid #86efac;
+
+  border-radius: 999px;
+
+  padding: 2px 8px;
+
+  font-size: 12px;
+
+  font-weight: 600;
+
+  margin-left: 2px;
+}

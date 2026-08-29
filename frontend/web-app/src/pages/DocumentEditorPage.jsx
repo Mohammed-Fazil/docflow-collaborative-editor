@@ -182,11 +182,17 @@ function DocumentEditorPage() {
           return;
         }
 
-        setCursorUsers((prev) => ({
-          ...prev,
+        setCursorUsers((prev) => {
+          const updated = {
+            ...prev,
 
-          [cursorMessage.userEmail]: cursorMessage.position,
-        }));
+            [cursorMessage.userEmail]: cursorMessage.position,
+          };
+
+          console.log("Cursor Users State:", updated);
+
+          return updated;
+        });
       },
     );
 

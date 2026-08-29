@@ -17,6 +17,7 @@ import {
 
 import { useEffect } from "react";
 import { sendCursorEvent } from "../websocket/websocketService";
+import { RemoteCursorExtension } from "../extension/RemoteCursorExtension";
 
 function TiptapEditor({
   content,
@@ -37,6 +38,9 @@ function TiptapEditor({
       }),
 
       Underline,
+      RemoteCursorExtension.configure({
+        cursorUsers,
+      }),
     ],
 
     content,

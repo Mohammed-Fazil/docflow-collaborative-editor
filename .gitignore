@@ -12,6 +12,8 @@ target/
 # =========================
 .idea/
 *.iml
+*.ipr
+*.iws
 
 # =========================
 # VSCode
@@ -19,28 +21,68 @@ target/
 .vscode/
 
 # =========================
+# Eclipse / Spring Tool Suite
+# =========================
+.metadata/
+.recommenders/
+.settings/
+.classpath
+.project
+.factorypath
+.springBeans
+.sts4-cache/
+
+# =========================
+# Gradle
+# =========================
+.gradle/
+gradle-app.setting
+!gradle/wrapper/gradle-wrapper.jar
+
+# =========================
 # Node
 # =========================
 node_modules/
 dist/
 build/
+.vite/
+.eslintcache
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
 
 # =========================
 # Logs
 # =========================
 logs/
 *.log
+hs_err_pid*
 
 # =========================
 # OS Files
 # =========================
 .DS_Store
 Thumbs.db
+Desktop.ini
 
 # =========================
 # Environment Files
 # =========================
 .env
+.env.*
+!.env.example
+!.env.template
+
+# =========================
+# Local tools and temporary files
+# =========================
+*.swp
+*.swo
+*~
+.cache/
+.tmp/
+tmp/
 
 # =========================
 # Docker
