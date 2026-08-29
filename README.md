@@ -300,7 +300,3 @@ Repeat from the other service directories as needed.
 - The in-memory presence service will not share participant state across multiple service instances. A shared broker/store is needed when scaling.
 - API and WebSocket URLs are local-development values and should be environment-configurable.
 - The root README has been restored by this file; keep setup changes documented here as the services evolve.
-
-## License
-
-No license has been declared for this repository. Add one before distributing or publishing the project.
